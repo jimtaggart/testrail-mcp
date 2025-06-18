@@ -11,7 +11,7 @@ class TestRailMCPServer(FastMCP):
     
     def __init__(self):
         """Initialize the TestRail MCP server."""
-        super().__init__(name="TestRail MCP Server", version="0.1.3")
+        super().__init__(name="TestRail MCP Server")
         self.client = TestRailClient(TESTRAIL_URL, TESTRAIL_USERNAME, TESTRAIL_API_KEY)
         self._register_tools()
         self._register_resources()
@@ -92,6 +92,27 @@ class TestRailMCPServer(FastMCP):
                 project_id: The ID of the project
             """
             return self.client.delete_project(project_id)
+        
+        # Suite tools
+        @self.tool("get_suite", description="Get a suite by ID")
+        def get_suite(suite_id: int) -> Dict:
+            """
+            Get a suite by ID.
+            
+            Args:
+                suite_id: The ID of the test suite
+            """
+            return self.client.get_suite(suite_id)
+        
+        @self.tool("get_suites", description="Get all suites for a project")
+        def get_suites(project_id: int) -> List[Dict]:
+            """
+            Get all suites for a project.
+            
+            Args:
+                project_id: The ID of the project
+            """
+            return self.client.get_suites(project_id)
         
         # Case tools
         @self.tool("get_case", description="Get a test case by ID")
@@ -602,6 +623,16 @@ class TestRailMCPServer(FastMCP):
                 project_id: The ID of the project
             """
             return self.client.get_project(project_id)
+        
+        @self.resource("testrail://suite/{suite_id}")
+        def get_suite_resource(suite_id: int) -> Dict:
+            """
+            Get a suite by ID.
+            
+            Args:
+                suite_id: The ID of the test suite
+            """
+            return self.client.get_suite(suite_id)
         
         @self.resource("testrail://case/{case_id}")
         def get_case_resource(case_id: int) -> Dict:

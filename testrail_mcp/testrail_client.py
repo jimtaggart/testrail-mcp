@@ -186,6 +186,15 @@ class TestRailClient:
         """Delete a dataset."""
         return self._send_request('POST', f'delete_dataset/{dataset_id}')
 
+    # Suites API
+    def get_suite(self, suite_id: int) -> Dict:
+        """Get a suite by ID."""
+        return self._send_request('GET', f'get_suite/{suite_id}')
+    
+    def get_suites(self, project_id: int) -> List[Dict]:
+        """Get all suites for a project."""
+        return self._send_request('GET', f'get_suites/{project_id}')
+
     # Sections API
     def get_section(self, section_id:int) -> Dict:
         """Get a specific section"""

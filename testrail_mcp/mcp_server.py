@@ -105,14 +105,22 @@ class TestRailMCPServer(FastMCP):
             return self.client.get_suite(suite_id)
         
         @self.tool("get_suites", description="Get all suites for a project")
-        def get_suites(project_id: int) -> List[Dict]:
+        def get_suites(project_id: Union[int, str]) -> List[Dict]:
             """
             Get all suites for a project.
             
             Args:
                 project_id: The ID of the project
             """
-            return self.client.get_suites(project_id)
+            # Convert project_id to int if it's a string
+            converted_project_id = project_id
+            if isinstance(project_id, str):
+                try:
+                    converted_project_id = int(project_id)
+                except ValueError:
+                    raise ValueError(f"Invalid project_id: '{project_id}' cannot be converted to integer")
+            
+            return self.client.get_suites(converted_project_id)
         
         # Case tools
         @self.tool("get_case", description="Get a test case by ID")
@@ -126,7 +134,7 @@ class TestRailMCPServer(FastMCP):
             return self.client.get_case(case_id)
         
         @self.tool("get_cases", description="Get all test cases for a project/suite")
-        def get_cases(project_id: int, suite_id: Optional[int] = None) -> List[Dict]:
+        def get_cases(project_id: Union[int, str], suite_id: Union[int, str, None] = None) -> List[Dict]:
             """
             Get all test cases for a project/suite.
             
@@ -134,7 +142,26 @@ class TestRailMCPServer(FastMCP):
                 project_id: The ID of the project
                 suite_id: The ID of the test suite (optional)
             """
-            return self.client.get_cases(project_id, suite_id)
+            # Convert project_id to int if it's a string
+            converted_project_id = project_id
+            if isinstance(project_id, str):
+                try:
+                    converted_project_id = int(project_id)
+                except ValueError:
+                    raise ValueError(f"Invalid project_id: '{project_id}' cannot be converted to integer")
+            
+            # Convert suite_id to int if it's a string, or keep None if not provided
+            converted_suite_id = None
+            if suite_id is not None:
+                if isinstance(suite_id, str):
+                    try:
+                        converted_suite_id = int(suite_id)
+                    except ValueError:
+                        raise ValueError(f"Invalid suite_id: '{suite_id}' cannot be converted to integer")
+                else:
+                    converted_suite_id = int(suite_id)
+            
+            return self.client.get_cases(converted_project_id, converted_suite_id)
         
         @self.tool("add_case", description="Add a new test case")
         def add_case(
@@ -277,8 +304,8 @@ class TestRailMCPServer(FastMCP):
 
         @self.tool("get_sections", description="Retrieves all sections for a specified project and or suite")
         def get_sections(
-            project_id : int,
-            suite_id: Optional[int] = None ) -> Dict:
+            project_id : Union[int, str],
+            suite_id: Union[int, str, None] = None ) -> Dict:
             """
             Retrieves all sections for a specified project and suite
             
@@ -287,15 +314,34 @@ class TestRailMCPServer(FastMCP):
                 suite_id: The ID of the test suite (Optional)
 
             """
-            return self.client.get_sections(project_id,suite_id)
+            # Convert project_id to int if it's a string
+            converted_project_id = project_id
+            if isinstance(project_id, str):
+                try:
+                    converted_project_id = int(project_id)
+                except ValueError:
+                    raise ValueError(f"Invalid project_id: '{project_id}' cannot be converted to integer")
+            
+            # Convert suite_id to int if it's a string, or keep None if not provided
+            converted_suite_id = None
+            if suite_id is not None:
+                if isinstance(suite_id, str):
+                    try:
+                        converted_suite_id = int(suite_id)
+                    except ValueError:
+                        raise ValueError(f"Invalid suite_id: '{suite_id}' cannot be converted to integer")
+                else:
+                    converted_suite_id = int(suite_id)
+            
+            return self.client.get_sections(converted_project_id, converted_suite_id)
 
         @self.tool("add_section", description="Creates a new section in a TestRail project")
         def add_section(
-            project_id : int,
+            project_id : Union[int, str],
             name: str,
             description: str,
-            suite_id: Optional[int] = None,
-            parent_id: Optional[int] = None) -> Dict:
+            suite_id: Union[int, str, None] = None,
+            parent_id: Union[int, str, None] = None) -> Dict:
             """
             Retrieves all sections for a specified project and suite
             
@@ -307,15 +353,39 @@ class TestRailMCPServer(FastMCP):
                 parent_id: The ID of the parent
 
             """
+            # Convert project_id to int if it's a string
+            converted_project_id = project_id
+            if isinstance(project_id, str):
+                try:
+                    converted_project_id = int(project_id)
+                except ValueError:
+                    raise ValueError(f"Invalid project_id: '{project_id}' cannot be converted to integer")
+            
             data = {}
             data["name"] = name
             data["description"] = description
+            
+            # Convert suite_id to int if it's a string, or keep None if not provided
             if suite_id is not None:
-                data["suite_id"] = suite_id
+                if isinstance(suite_id, str):
+                    try:
+                        data["suite_id"] = int(suite_id)
+                    except ValueError:
+                        raise ValueError(f"Invalid suite_id: '{suite_id}' cannot be converted to integer")
+                else:
+                    data["suite_id"] = int(suite_id)
+            
+            # Convert parent_id to int if it's a string, or keep None if not provided
             if parent_id is not None:
-                data["parent_id"] = parent_id
+                if isinstance(parent_id, str):
+                    try:
+                        data["parent_id"] = int(parent_id)
+                    except ValueError:
+                        raise ValueError(f"Invalid parent_id: '{parent_id}' cannot be converted to integer")
+                else:
+                    data["parent_id"] = int(parent_id)
 
-            return self.client.add_section(project_id,data)
+            return self.client.add_section(converted_project_id,data)
 
         @self.tool("update_section", description="Updates an existing section")
         def update_section(

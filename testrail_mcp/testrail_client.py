@@ -3,6 +3,7 @@ import base64
 import json
 from typing import Dict, List, Any, Optional, Union
 import requests
+from urllib.parse import urlencode
 
 class TestRailClient:
     """TestRail API client for interacting with TestRail."""
@@ -37,7 +38,7 @@ class TestRailClient:
             'Content-Type': 'application/json',
         })
 
-    def _send_request(self, method: str, uri: str, data: Optional[Dict] = None) -> Any:
+    def _send_request(self, method: str, uri: str, data: Optional[Dict] = None, params: Optional[Dict] = None) -> Any:
         """
         Send a request to the TestRail API.
         
@@ -45,6 +46,7 @@ class TestRailClient:
             method: HTTP method (GET, POST, etc.)
             uri: API endpoint URI
             data: Request data for POST/PUT requests
+            params: Query parameters for GET requests
             
         Returns:
             Response data from TestRail
@@ -53,6 +55,16 @@ class TestRailClient:
             Exception: If the request fails
         """
         url = self.base_url + uri
+        
+        # Add query parameters for GET requests
+        if params and method.upper() == 'GET':
+            # Filter out None values
+            filtered_params = {k: v for k, v in params.items() if v is not None}
+            if filtered_params:
+                query_string = urlencode(filtered_params)
+                # Use & if URL already has query parameters, otherwise use ?
+                separator = '&' if '?' in url else '?'
+                url += separator + query_string
         
         if method.upper() == 'GET':
             response = self.session.get(url)
@@ -70,7 +82,10 @@ class TestRailClient:
                 error = response.json()
             except:
                 error = response.text
-            raise Exception(f"TestRail API returned HTTP {response.status_code}: {error}")
+            debug_info = f" [URL: {url}]"
+            if params:
+                debug_info += f" [Original params: {params}]"
+            raise Exception(f"TestRail API returned HTTP {response.status_code}: {error}{debug_info}")
             
         return response.json() if response.content else {}
 
@@ -81,10 +96,10 @@ class TestRailClient:
     
     def get_cases(self, project_id: int, suite_id: Optional[int] = None) -> List[Dict]:
         """Get all test cases for a project/suite."""
-        uri = f'get_cases/{project_id}'
-        if suite_id:
-            uri += f'&suite_id={suite_id}'
-        return self._send_request('GET', uri)
+        params = {}
+        if suite_id is not None:
+            params['suite_id'] = suite_id
+        return self._send_request('GET', f'get_cases/{project_id}', params=params)
     
     def add_case(self, section_id: int, data: Dict) -> Dict:
         """Add a new test case."""
@@ -97,7 +112,7 @@ class TestRailClient:
     def delete_case(self, case_id: int) -> Dict:
         """Delete a test case."""
         return self._send_request('POST', f'delete_case/{case_id}')
-    
+
     # Projects API
     def get_project(self, project_id: int) -> Dict:
         """Get a project by ID."""
@@ -118,7 +133,7 @@ class TestRailClient:
     def delete_project(self, project_id: int) -> Dict:
         """Delete a project."""
         return self._send_request('POST', f'delete_project/{project_id}')
-    
+
     # Runs API
     def get_run(self, run_id: int) -> Dict:
         """Get a test run by ID."""
@@ -143,36 +158,24 @@ class TestRailClient:
     def delete_run(self, run_id: int) -> Dict:
         """Delete a test run."""
         return self._send_request('POST', f'delete_run/{run_id}')
-    
+
     # Results API
     def get_results(self, test_id: int) -> List[Dict]:
-        """Get all results for a test."""
+        """Get all test results for a test."""
         return self._send_request('GET', f'get_results/{test_id}')
     
-    def get_results_for_run(self, run_id: int) -> List[Dict]:
-        """Get all results for a run."""
-        return self._send_request('GET', f'get_results_for_run/{run_id}')
-    
     def add_result(self, test_id: int, data: Dict) -> Dict:
-        """Add a new result for a test."""
+        """Add a new test result."""
         return self._send_request('POST', f'add_result/{test_id}', data)
-    
-    def add_results(self, run_id: int, data: Dict) -> List[Dict]:
-        """Add multiple results for a run."""
-        return self._send_request('POST', f'add_results/{run_id}', data)
-    
-    def add_results_for_cases(self, run_id: int, data: Dict) -> List[Dict]:
-        """Add results for specific cases in a run."""
-        return self._send_request('POST', f'add_results_for_cases/{run_id}', data)
-    
-    # Datasets API (assuming TestRail has dataset endpoints)
-    def get_datasets(self, project_id: int) -> List[Dict]:
-        """Get all datasets for a project."""
-        return self._send_request('GET', f'get_datasets/{project_id}')
-    
+
+    # Datasets API
     def get_dataset(self, dataset_id: int) -> Dict:
         """Get a dataset by ID."""
         return self._send_request('GET', f'get_dataset/{dataset_id}')
+    
+    def get_datasets(self, project_id: int) -> List[Dict]:
+        """Get all datasets for a project."""
+        return self._send_request('GET', f'get_datasets/{project_id}')
     
     def add_dataset(self, project_id: int, data: Dict) -> Dict:
         """Add a new dataset."""
@@ -196,30 +199,32 @@ class TestRailClient:
         return self._send_request('GET', f'get_suites/{project_id}')
 
     # Sections API
-    def get_section(self, section_id:int) -> Dict:
+    def get_section(self, section_id: int) -> Dict:
         """Get a specific section"""
         return self._send_request('GET', f'get_section/{section_id}')
 
-    def get_sections(self, project_id: int, suite_id:Optional[int] = None, params:Optional[Dict] = None) -> Dict:
+    def get_sections(self, project_id: int, suite_id: Optional[int] = None, params: Optional[Dict] = None) -> Dict:
         """Get all sections for a project"""
-        query_params = {**params, "suite_id": suite_id} if suite_id else params
-        return self._send_request('GET', f'get_sections/{project_id}',{params : query_params})
+        query_params = params or {}
+        if suite_id is not None:
+            query_params['suite_id'] = suite_id
+        return self._send_request('GET', f'get_sections/{project_id}', params=query_params)
 
-    def add_section(self, project_id:int, data:Dict) -> Dict:
+    def add_section(self, project_id: int, data: Dict) -> Dict:
         """Add a new section"""
         return self._send_request('POST', f'add_section/{project_id}', data)
 
-    def update_section(self, section_id:int, data:Dict) -> Dict:
+    def update_section(self, section_id: int, data: Dict) -> Dict:
         """Update an existing section"""
         return self._send_request('POST', f'update_section/{section_id}', data)
 
-    def delete_section(self, section_id:int, soft:bool) -> Dict:
+    def delete_section(self, section_id: int, soft: bool) -> Dict:
         """Delete an existing section"""
         url = f'delete_section/{section_id}'
-        if (soft):
+        if soft:
             url = f'delete_section/{section_id}?soft=1'
         return self._send_request('POST', url)
 
-    def move_section(self, section_id:int, data: Dict) -> Dict:
+    def move_section(self, section_id: int, data: Dict) -> Dict:
         """Move a section to a different parent or position"""
         return self._send_request('POST', f'move_section/{section_id}', data)
